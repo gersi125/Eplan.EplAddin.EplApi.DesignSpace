@@ -20,6 +20,7 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
             var pr_name = project.ProjectName.ToString();
             var pr_type = project.TypeOfProject.ToString();
             var pagesGroups = project.Pages.GroupBy(obj => obj.Properties.DESIGNATION_LOCATION);
+            //var prjSettings = new ProjectSettings(project).ToString();
 
             StreamWriter ws;
             FileInfo epinfo = new FileInfo(@"C:\TEMP\" + pr_name + "_Info.txt");
@@ -29,14 +30,27 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
             ws.WriteLine("==============================================");
             ws.WriteLine("Project Type: " + pr_type);
             ws.WriteLine("==============================================");
-
-            HashSet<string> p_names = new HashSet<string>();
-            HashSet<string> p_types = new HashSet<string>();
-            HashSet<string> p_props = new HashSet<string>();
-            HashSet<string> plcs = new HashSet<string>();
+            //ws.WriteLine("Project Settings: " + prjSettings);  
+            
+            HashSet<string> p_names    = new HashSet<string>();
+            HashSet<string> p_types    = new HashSet<string>();
+            HashSet<string> p_props    = new HashSet<string>();
+            HashSet<string> plcs       = new HashSet<string>();
             HashSet<string> plcs_ranks = new HashSet<string>();
-            HashSet<string> functions = new HashSet<string>();
+            HashSet<string> functions  = new HashSet<string>();
             HashSet<string> func_descs = new HashSet<string>();
+
+
+            DMObjectsFinder objectFinder = new DMObjectsFinder(project);
+            AnnotationFilter annotationFilter = new AnnotationFilter();
+            Function[] soa = objectFinder.GetFunctionsWithCF(annotationFilter);
+
+            foreach (Function f in soa)
+            {
+                ws.WriteLine("function x:" + f.Location.X);
+                ws.WriteLine("function y:" + f.Location.Y);
+            }
+
 
             foreach (var pageGroup in pagesGroups)
             {
@@ -46,7 +60,7 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
                 {
                     var function = page.Properties.DESIGNATION_PLANT;
                     var func_desc = page.Properties.DESIGNATION_DOCTYPE;
-                    var plc = page.PLCs.ToString();
+                    var plc = page.PLCs.ToList().ToString();
                     var p_name = page.Properties.PAGE_NAME.ToString();
                     var p_type = page.Properties.PAGE_TYPE.ToString();
 
@@ -73,6 +87,7 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
                             foreach (var plc in plcs)
                             {
                                 ws.WriteLine("  - PLC: " + plc + "\n");
+                              
                                 no_plcs++;
                             }
                         }
