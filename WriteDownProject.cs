@@ -7,8 +7,10 @@ using Eplan.EplApi.ApplicationFramework;
 using Eplan.EplApi.DataModel;
 using System.IO;
 
-namespace Eplan.EplAddin.EplApi.DesignSpace
+
+namespace Eplan.EplAddin.EplApi.DesignSpace 
 {
+
     class WriteDownProject
     {
         public void WriteDownPages(Project project)
@@ -16,6 +18,7 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
             int no_pages = 0;
             int no_functions = 0;
             int no_plcs = 0;
+            int no_connections = 0;
 
             var pr_name = project.ProjectName.ToString();
             var pr_type = project.TypeOfProject.ToString();
@@ -23,33 +26,15 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
             //var prjSettings = new ProjectSettings(project).ToString();
 
             StreamWriter ws;
-            FileInfo epinfo = new FileInfo(@"C:\TEMP\" + pr_name + "_Info.txt");
+            FileInfo epinfo = new FileInfo(@"C:\Users\veshi\Documents\" + pr_name + "_Info.txt");
             ws = epinfo.AppendText();
 
             ws.WriteLine("Eplan Project Name: " + pr_name);
             ws.WriteLine("==============================================");
             ws.WriteLine("Project Type: " + pr_type);
             ws.WriteLine("==============================================");
-            //ws.WriteLine("Project Settings: " + prjSettings);  
-            
-            HashSet<string> p_names    = new HashSet<string>();
-            HashSet<string> p_types    = new HashSet<string>();
-            HashSet<string> p_props    = new HashSet<string>();
-            HashSet<string> plcs       = new HashSet<string>();
-            HashSet<string> plcs_ranks = new HashSet<string>();
-            HashSet<string> functions  = new HashSet<string>();
-            HashSet<string> func_descs = new HashSet<string>();
 
-
-            DMObjectsFinder objectFinder = new DMObjectsFinder(project);
-            AnnotationFilter annotationFilter = new AnnotationFilter();
-            Function[] soa = objectFinder.GetFunctionsWithCF(annotationFilter);
-
-            foreach (Function f in soa)
-            {
-                ws.WriteLine("function x:" + f.Location.X);
-                ws.WriteLine("function y:" + f.Location.Y);
-            }
+            HashSet<Function> functions = new HashSet<Function>();
 
 
             foreach (var pageGroup in pagesGroups)
@@ -58,52 +43,73 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
 
                 foreach (Page page in pageGroup)
                 {
-                    var function = page.Properties.DESIGNATION_PLANT;
-                    var func_desc = page.Properties.DESIGNATION_DOCTYPE;
-                    var plc = page.PLCs.ToList().ToString();
-                    var p_name = page.Properties.PAGE_NAME.ToString();
-                    var p_type = page.Properties.PAGE_TYPE.ToString();
 
-                    p_names.Add(p_name);
-                    p_types.Add(p_type);
-                    functions.Add(function);
-                    func_descs.Add(func_desc);
-                    plcs.Add(plc);
-                }
-            }
+                    var p_name = page.Properties.PAGE_NAME;
+                    var p_type = page.Properties.PAGE_TYPE;
+                    var plc = page.PLCs;
 
-
-            foreach (var p_name in p_names)
-            {
-                foreach (var p_type in p_types)
-                {
-                    ws.WriteLine("Page: " + p_name + " || Page Type: " + p_type + "\n");
-
-                    foreach (var function in functions)
+                    for (int i = 0; i < page.Functions.Length; i++)
                     {
-                        foreach (var func_desc in func_descs)
+                        functions.Add(page.Functions[i]);
+                    }
+
+                    ws.WriteLine("Page Name: " + p_name + " || Page Type: " + p_type);
+
+                    for(int i = 0; i < plc.Length; i++)
+                    {
+                        ws.WriteLine("\t- Page PLC: " + plc[i].Name);
+                        no_plcs++;
+                    }
+
+                    ws.WriteLine("\n");
+
+                    foreach (Function f in functions)
+                    {
+                        ws.WriteLine("\t- Function: " + f.Name);
+                        
+                        if (f.VisibleName == "") { }
+                        else
                         {
-                            ws.WriteLine(" - Function: " + function + " (" + func_desc + ")");
-                            foreach (var plc in plcs)
-                            {
-                                ws.WriteLine("  - PLC: " + plc + "\n");
-                              
-                                no_plcs++;
-                            }
+                            ws.WriteLine("\t\t - Function Visible Name: " + f.VisibleName);
                         }
+                        
+                        ws.WriteLine("\t\t - Function Type: " + f.Category + "\n");
+                        ws.WriteLine("\t\t - Function Location X: " + f.Location.X);
+                        ws.WriteLine("\t\t - Function Location Y: " + f.Location.Y + "\n");
+                        
+                        for (int i = 0; i < f.Connections.Length; i++)
+                        {
+                            ws.WriteLine("\t\t - Connection fout X: " + f.Connections[i].StartSymbolReference.Location.X);
+                            ws.WriteLine("\t\t - Connection fout Y: " + f.Connections[i].StartSymbolReference.Location.Y);
+                            ws.WriteLine("\t\t - Connection fin Y: " + f.Connections[i].EndSymbolReference.Location.X);
+                            ws.WriteLine("\t\t - Connection fin Y: " + f.Connections[i].EndSymbolReference.Location.Y + "\n");
+
+                            no_connections++;
+                        }
+
+                        if(f.Properties.FUNC_DEVICETAG_FULLNAME == "")
+                        { }
+                        else 
+                        {
+                            ws.WriteLine("\t\t - Function DT: " + f.Properties.FUNC_DEVICETAG_FULLNAME.ToString());
+                            ws.WriteLine("\n");
+                        }
+
                         no_functions++;
                     }
+
                     no_pages++;
+
                 }
             }
 
             ws.WriteLine("==============================================");
-            ws.WriteLine("Number of Pages:     " + no_pages);
-            ws.WriteLine("Number of Functions: " + no_functions);
-            ws.WriteLine("Number of PLCs:      " + no_plcs);
+            ws.WriteLine("Number of Pages:       " + no_pages);
+            ws.WriteLine("Number of Functions:   " + no_functions);
+            ws.WriteLine("Number of Connections: " + no_connections);
+            ws.WriteLine("Number of PLCs:        " + no_plcs);
             ws.WriteLine("==============================================");
             ws.Dispose();
-
         }
     }
 }
