@@ -22,7 +22,9 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
 
             var pr_name = project.ProjectName.ToString();
             var pr_type = project.TypeOfProject.ToString();
-            var pagesGroups = project.Pages.GroupBy(obj => obj.Properties.DESIGNATION_LOCATION);
+            var pagesLocationsGroups = project.Pages.GroupBy(obj => obj.Properties.DESIGNATION_LOCATION);
+            var pagesDesignationsGroups = project.Pages.GroupBy(obj => obj.Properties.DESIGNATION_PLANT);
+           
             //var prjSettings = new ProjectSettings(project).ToString();
 
             StreamWriter ws;
@@ -36,80 +38,83 @@ namespace Eplan.EplAddin.EplApi.DesignSpace
 
             HashSet<Function> functions = new HashSet<Function>();
 
-
-            foreach (var pageGroup in pagesGroups)
+            
+            foreach (var pageDesignation in pagesDesignationsGroups)
             {
-                string location = pageGroup.Key;
+                string designation = pageDesignation.Key;
 
-                foreach (Page page in pageGroup)
+                ws.WriteLine("Page Designation Plant: " + designation);
+                
+
+                foreach (var pageGroup in pagesLocationsGroups)
                 {
+                    string location = pageGroup.Key;
 
-                    var p_name = page.Properties.PAGE_NAME;
-                    var p_type = page.Properties.PAGE_TYPE;
-                    var plc = page.PLCs;
-
-                    for (int i = 0; i < page.Functions.Length; i++)
+                    ws.WriteLine("\t- Page Location Group: " + location);
+                    foreach (Page page in pageGroup)
                     {
-                        functions.Add(page.Functions[i]);
-                    }
-
-                    ws.WriteLine("Page Name: " + p_name + " || Page Type: " + p_type);
-
-                    for(int i = 0; i < plc.Length; i++)
-                    {
-                        ws.WriteLine("\t- Page PLC: " + plc[i].Name);
-                        no_plcs++;
-                    }
-
-                    ws.WriteLine("\n");
-
-                    foreach (Function f in functions)
-                    {
-                        ws.WriteLine("\t- Function: " + f.Name);
-                        
-                        if (f.VisibleName == "") { }
-                        else
+                        var p_name = page.Properties.PAGE_NAME;
+                        var p_type = page.Properties.PAGE_TYPE;
+                        var p_desc = page.Properties.DESIGNATION_FUNCTIONALASSIGNMENT_DESCR;
+                        var plc = page.PLCs;
+                        for (int i = 0; i < page.Functions.Length; i++)
                         {
-                            ws.WriteLine("\t\t - Function Visible Name: " + f.VisibleName);
-                        }
-                        
-                        ws.WriteLine("\t\t - Function Type: " + f.Category + "\n");
-                        ws.WriteLine("\t\t - Function Location X: " + f.Location.X);
-                        ws.WriteLine("\t\t - Function Location Y: " + f.Location.Y + "\n");
-                        
-                        for (int i = 0; i < f.Connections.Length; i++)
-                        {
-                            ws.WriteLine("\t\t - Connection fout X: " + f.Connections[i].StartSymbolReference.Location.X);
-                            ws.WriteLine("\t\t - Connection fout Y: " + f.Connections[i].StartSymbolReference.Location.Y);
-                            ws.WriteLine("\t\t - Connection fin Y: " + f.Connections[i].EndSymbolReference.Location.X);
-                            ws.WriteLine("\t\t - Connection fin Y: " + f.Connections[i].EndSymbolReference.Location.Y + "\n");
-
-                            no_connections++;
+                            functions.Add(page.Functions[i]);
                         }
 
-                        if(f.Properties.FUNC_DEVICETAG_FULLNAME == "")
-                        { }
-                        else 
+                        ws.WriteLine("\t\t- Page Name: " + p_name + " || Page Type: " + p_type);
+                        for (int i = 0; i < plc.Length; i++)
                         {
-                            ws.WriteLine("\t\t - Function DT: " + f.Properties.FUNC_DEVICETAG_FULLNAME.ToString());
-                            ws.WriteLine("\n");
+                            ws.WriteLine("\t\t- Page PLC: " + plc[i].Name);
+                            no_plcs++;
                         }
 
-                        no_functions++;
+                        ws.WriteLine("\n");
+
+                        foreach (Function f in functions)
+                        {
+                            ws.WriteLine("\t\t\t- Function: " + f.Name);
+                            if (f.VisibleName == "") { }
+                            else
+                            {
+                                ws.WriteLine("\t\t\t\t - Function Visible Name: " + f.VisibleName);
+                            }
+
+                            ws.WriteLine("\t\t\t\t - Function Type: " + f.Category + "\n");
+                            ws.WriteLine("\t\t\t\t - Function Location X: " + f.Location.X);
+                            ws.WriteLine("\t\t\t\t - Function Location Y: " + f.Location.Y + "\n");
+
+                            for (int i = 0; i < f.Connections.Length; i++)
+                            {
+                                ws.WriteLine("\t\t\t\t - Connection fout X: " + f.Connections[i].StartSymbolReference.Location.X);
+                                ws.WriteLine("\t\t\t\t - Connection fout Y: " + f.Connections[i].StartSymbolReference.Location.Y);
+                                ws.WriteLine("\t\t\t\t - Connection fin Y: " + f.Connections[i].EndSymbolReference.Location.X);
+                                ws.WriteLine("\t\t\t\t - Connection fin Y: " + f.Connections[i].EndSymbolReference.Location.Y + "\n");
+                                no_connections++;
+                            }
+
+                            if (f.Properties.FUNC_DEVICETAG_FULLNAME == "") { }
+                            else
+                            {
+                                ws.WriteLine("\t\t\t\t - Function DT: " + f.Properties.FUNC_DEVICETAG_FULLNAME);
+                                ws.WriteLine("\n");
+                            }
+
+                            no_functions++;
+                        }
+
+                        no_pages++;
                     }
-
-                    no_pages++;
-
                 }
-            }
 
-            ws.WriteLine("==============================================");
-            ws.WriteLine("Number of Pages:       " + no_pages);
-            ws.WriteLine("Number of Functions:   " + no_functions);
-            ws.WriteLine("Number of Connections: " + no_connections);
-            ws.WriteLine("Number of PLCs:        " + no_plcs);
-            ws.WriteLine("==============================================");
-            ws.Dispose();
+                ws.WriteLine("==============================================");
+                ws.WriteLine("Number of Pages:       " + no_pages);
+                ws.WriteLine("Number of Functions:   " + no_functions);
+                ws.WriteLine("Number of Connections: " + no_connections);
+                ws.WriteLine("Number of PLCs:        " + no_plcs);
+                ws.WriteLine("==============================================");
+                ws.Dispose();
+            }
         }
     }
 }
